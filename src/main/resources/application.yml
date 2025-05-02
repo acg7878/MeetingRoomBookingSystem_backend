@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: MeetingRoomBookingSystem
+
+  security:
+    jwt:
+      key: abcdefghijk
+      expire: 1
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/MeetingRoomBooking?useSSL=false&serverTimezone=UTC
+    username: root
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # 生产环境推荐 validate，开发可以用 update 或 create
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl  # ✅ 不自动转小写、不加下划线
+    show-sql: true  # 控制台打印SQL
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        globally_quoted_identifiers: true  # 可选，加引号处理（如果列名或表名和关键字冲突时有用）
