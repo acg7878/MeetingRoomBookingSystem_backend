@@ -9,7 +9,6 @@ spring:
 
   redis:
     host: localhost
-    port: 6379
 
   datasource:
     url: jdbc:mysql://localhost:3306/MeetingRoomBooking?useSSL=false&serverTimezone=UTC
@@ -26,3 +25,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         globally_quoted_identifiers: true  # 可选，加引号处理（如果列名或表名和关键字冲突时有用）
+  data:
+    redis:
+      port: 6379
