@@ -1,11 +1,7 @@
 package com.example.meetingroombookingsystem.controller;
 
 import com.example.meetingroombookingsystem.dto.request.LoginRequest;
-import com.example.meetingroombookingsystem.entity.auth.Roles;
 import com.example.meetingroombookingsystem.entity.auth.Users;
-import com.example.meetingroombookingsystem.repository.RolesRepository;
-import com.example.meetingroombookingsystem.repository.UserRepository;
-import com.example.meetingroombookingsystem.repository.UserRolesRepository;
 import com.example.meetingroombookingsystem.service.LoginService;
 import com.example.meetingroombookingsystem.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +24,11 @@ public class AuthController {
     @PostMapping
     public String login(@RequestBody LoginRequest loginRequest) {
         Users user = loginService.login(loginRequest.getUsername(),loginRequest.getPassword());
-        String role = loginService.getUserRoleName(user.getUser_id());
+        String role = loginService.getUserRole(user.getUserId());
         UserDetails userDetails = User.withUsername(user.getUsername())
                 .password(user.getPassword())
                 .authorities(role)
                 .build();
-        return jwtUtils.createJWT(userDetails, user.getUser_id(), user.getUsername());
+        return jwtUtils.createJWT(userDetails, user.getUserId(), user.getUsername());
     }
 }

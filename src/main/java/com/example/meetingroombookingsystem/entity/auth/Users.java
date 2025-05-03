@@ -12,7 +12,8 @@ import java.util.List;
 public class Users {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)  // 自增主键
-    private int user_id;
+    @Column(name = "user_id")
+    private int userId;
 
     @Column(name = "username", nullable = false, unique = true)
     private String username;

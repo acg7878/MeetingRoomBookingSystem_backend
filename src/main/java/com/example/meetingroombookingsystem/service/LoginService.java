@@ -2,8 +2,8 @@ package com.example.meetingroombookingsystem.service;
 
 import com.example.meetingroombookingsystem.entity.auth.UserRoles;
 import com.example.meetingroombookingsystem.entity.auth.Users;
-import com.example.meetingroombookingsystem.repository.UserRepository;
-import com.example.meetingroombookingsystem.repository.UserRolesRepository;
+import com.example.meetingroombookingsystem.repository.auth.UserRepository;
+import com.example.meetingroombookingsystem.repository.auth.UserRolesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,8 +22,8 @@ public class LoginService {
         return user;
     }
 
-    public String getUserRoleName(Integer userId){
-        UserRoles userRole = userRolesRepository.findByUserId(userId);
+    public String getUserRole(Integer userId){
+        UserRoles userRole = userRolesRepository.findByUser_userId(userId);
         if (userRole != null) {
             return userRole.getRole().getRole_name();
         } else {

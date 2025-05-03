@@ -1,4 +1,4 @@
-package com.example.meetingroombookingsystem.repository;
+package com.example.meetingroombookingsystem.repository.auth;
 
 import com.example.meetingroombookingsystem.entity.auth.RolePermissions;
 import org.springframework.data.jpa.repository.JpaRepository;

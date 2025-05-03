@@ -1,4 +1,4 @@
-package com.example.meetingroombookingsystem.repository;
+package com.example.meetingroombookingsystem.repository.business;
 
 import com.example.meetingroombookingsystem.entity.business.Orders;
 import org.springframework.data.jpa.repository.JpaRepository;

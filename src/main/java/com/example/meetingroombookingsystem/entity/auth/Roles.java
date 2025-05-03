@@ -10,8 +10,9 @@ import java.util.List;
 @Data
 public class Roles {
     @Id
+    @Column(name = "role_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int role_id;
+    private int roleId;
 
     @Column(name = "role_name", nullable = false, unique = true)
     private String role_name;
