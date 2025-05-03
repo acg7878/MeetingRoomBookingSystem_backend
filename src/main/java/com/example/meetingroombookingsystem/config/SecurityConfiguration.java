@@ -1,6 +1,6 @@
 package com.example.meetingroombookingsystem.config;
 
-import com.example.meetingroombookingsystem.controller.RestBean;
+import com.example.meetingroombookingsystem.utils.RestBean;
 import com.example.meetingroombookingsystem.entity.auth.Users;
 import com.example.meetingroombookingsystem.repository.auth.UserRepository;
 import com.example.meetingroombookingsystem.utils.JwtUtils;
@@ -16,6 +16,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -54,7 +55,7 @@ public class SecurityConfiguration {
         User user = (User) authentication.getPrincipal();
         String username = user.getUsername();
         String role = user.getAuthorities().stream()
-                .map(grantedAuthority -> grantedAuthority.getAuthority())
+                .map(GrantedAuthority::getAuthority)
                 .findFirst()
                 .orElse("USER");
         int userId = userRepository.findByUsername(username)
