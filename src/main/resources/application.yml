@@ -7,9 +7,6 @@ spring:
       key: abcdefghijk
       expire: 1
 
-  redis:
-    host: localhost
-
   datasource:
     url: jdbc:mysql://localhost:3306/MeetingRoomBooking?useSSL=false&serverTimezone=UTC
     username: root
@@ -28,3 +25,4 @@ spring:
   data:
     redis:
       port: 6379
+      host: localhost
