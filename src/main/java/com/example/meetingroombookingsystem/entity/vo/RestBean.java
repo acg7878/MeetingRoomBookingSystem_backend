@@ -1,4 +1,4 @@
-package com.example.meetingroombookingsystem.vo;
+package com.example.meetingroombookingsystem.entity.vo;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONWriter;
