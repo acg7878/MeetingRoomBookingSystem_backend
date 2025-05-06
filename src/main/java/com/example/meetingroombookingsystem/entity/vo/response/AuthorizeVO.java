@@ -1,4 +1,4 @@
-package com.example.meetingroombookingsystem.vo.response;
+package com.example.meetingroombookingsystem.entity.vo.response;
 
 import lombok.Data;
 import java.util.Date;
