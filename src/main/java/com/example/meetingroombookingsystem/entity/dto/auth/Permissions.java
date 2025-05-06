@@ -1,4 +1,4 @@
-package com.example.meetingroombookingsystem.entity.auth;
+package com.example.meetingroombookingsystem.entity.dto.auth;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
