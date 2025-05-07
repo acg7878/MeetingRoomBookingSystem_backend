@@ -1,4 +1,4 @@
-package com.example.meetingroombookingsystem.entity.vo.request;
+package com.example.meetingroombookingsystem.entity.vo.request.auth;
 
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;

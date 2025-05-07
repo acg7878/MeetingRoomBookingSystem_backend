@@ -1,7 +1,6 @@
-package com.example.meetingroombookingsystem.entity.vo.request;
+package com.example.meetingroombookingsystem.entity.vo.request.auth;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 
