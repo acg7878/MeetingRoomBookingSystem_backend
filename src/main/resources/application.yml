@@ -2,6 +2,14 @@ spring:
   web:
     verify:
       mail-limit: 60
+    flow:
+      period: 3
+      limit: 50
+      block: 30
+    cors:
+      origin: '*'
+      credentials: false
+      methods: '*'
   mail:
     host: smtp.163.com
     username: j2477952281@163.com
