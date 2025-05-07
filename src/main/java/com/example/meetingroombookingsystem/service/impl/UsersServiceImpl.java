@@ -6,12 +6,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.meetingroombookingsystem.entity.dto.auth.Roles;
 import com.example.meetingroombookingsystem.entity.dto.auth.UserRoles;
 import com.example.meetingroombookingsystem.entity.dto.auth.Users;
-import com.example.meetingroombookingsystem.entity.vo.request.ConfirmResetVO;
-import com.example.meetingroombookingsystem.entity.vo.request.EmailRegisterVO;
-import com.example.meetingroombookingsystem.entity.vo.request.EmailResetVO;
-import com.example.meetingroombookingsystem.mapper.RolesMapper;
-import com.example.meetingroombookingsystem.mapper.UserRolesMapper;
-import com.example.meetingroombookingsystem.mapper.UsersMapper;
+import com.example.meetingroombookingsystem.entity.vo.request.auth.ConfirmResetVO;
+import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailRegisterVO;
+import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailResetVO;
+import com.example.meetingroombookingsystem.mapper.auth.RolesMapper;
+import com.example.meetingroombookingsystem.mapper.auth.UserRolesMapper;
+import com.example.meetingroombookingsystem.mapper.auth.UsersMapper;
 import com.example.meetingroombookingsystem.service.UsersService;
 
 import com.example.meetingroombookingsystem.utils.Const;
@@ -29,7 +29,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
-import java.util.Date;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -69,6 +68,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
                 .withUsername(username)
                 .password(users.getPassword())
                 .roles(findRoleByUserId(users.getUserId()))
+
                 .build();
     }
 
@@ -123,6 +123,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     public String registerEmailAccount(EmailRegisterVO info) {
         String email = info.getEmail();
         String code = this.getEmailVerifyCode(email);
+        String role = info.getRole();
         if (code == null) return "请先获取验证码";
         if (!code.equals(info.getCode())) return "验证码错误，请重新输入";
         if (this.existsAccountByEmail(email)) return "该邮件地址已被注册";
@@ -134,6 +135,16 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         if (!this.save(account)) {
             return "内部错误，注册失败";
         } else {
+            Integer userId = account.getUserId();
+            Roles roleEntity = rolesMapper.selectOne(Wrappers.<Roles>query().eq("role_name", role));
+            if (roleEntity == null) {
+                return "角色不存在，请联系管理员";
+            }
+            Integer roleId = roleEntity.getRoleId();
+            UserRoles userRole = new UserRoles(userId, roleId);
+            if (userRolesMapper.insert(userRole) <= 0) {
+                return "内部错误，角色分配失败";
+            }
             this.deleteEmailVerifyCode(email);
             return null;
         }

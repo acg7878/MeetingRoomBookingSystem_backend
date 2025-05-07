@@ -2,9 +2,9 @@ package com.example.meetingroombookingsystem.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.meetingroombookingsystem.entity.dto.auth.Users;
-import com.example.meetingroombookingsystem.entity.vo.request.ConfirmResetVO;
-import com.example.meetingroombookingsystem.entity.vo.request.EmailRegisterVO;
-import com.example.meetingroombookingsystem.entity.vo.request.EmailResetVO;
+import com.example.meetingroombookingsystem.entity.vo.request.auth.ConfirmResetVO;
+import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailRegisterVO;
+import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailResetVO;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 public interface UsersService extends IService<Users>, UserDetailsService {
