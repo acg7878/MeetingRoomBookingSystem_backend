@@ -1,11 +1,11 @@
 package com.example.meetingroombookingsystem.controller;
 
-import com.example.meetingroombookingsystem.entity.vo.request.ConfirmResetVO;
+import com.example.meetingroombookingsystem.entity.vo.request.auth.ConfirmResetVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.meetingroombookingsystem.entity.vo.RestBean;
-import com.example.meetingroombookingsystem.entity.vo.request.EmailRegisterVO;
-import com.example.meetingroombookingsystem.entity.vo.request.EmailResetVO;
+import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailRegisterVO;
+import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailResetVO;
 import com.example.meetingroombookingsystem.service.UsersService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
