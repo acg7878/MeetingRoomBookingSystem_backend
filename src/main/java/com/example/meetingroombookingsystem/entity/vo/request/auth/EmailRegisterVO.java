@@ -19,4 +19,6 @@ public class EmailRegisterVO {
     String username;
     @Length(min = 6, max = 20)
     String password;
+    @Pattern(regexp = "^(admin|employee|customer)$", message = "角色只能是admin、employee或customer")
+    String role;
 }
