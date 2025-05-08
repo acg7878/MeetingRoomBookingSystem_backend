@@ -34,6 +34,9 @@ public class JwtAuthorizeFilter extends OncePerRequestFilter {
                     null, user.getAuthorities());
             authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+            // 打印 SecurityContext 中的用户信息和权限
+            System.out.println("当前用户: " + user.getUsername());
+            System.out.println("用户权限: " + user.getAuthorities());
         }
         filterChain.doFilter(request, response);
     }
