@@ -3,15 +3,11 @@ package com.example.meetingroombookingsystem.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.example.meetingroombookingsystem.entity.dto.auth.Roles;
-import com.example.meetingroombookingsystem.entity.dto.auth.UserRoles;
-import com.example.meetingroombookingsystem.entity.dto.auth.Users;
+import com.example.meetingroombookingsystem.entity.dto.auth.*;
 import com.example.meetingroombookingsystem.entity.vo.request.auth.ConfirmResetVO;
 import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailRegisterVO;
 import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailResetVO;
-import com.example.meetingroombookingsystem.mapper.auth.RolesMapper;
-import com.example.meetingroombookingsystem.mapper.auth.UserRolesMapper;
-import com.example.meetingroombookingsystem.mapper.auth.UsersMapper;
+import com.example.meetingroombookingsystem.mapper.auth.*;
 import com.example.meetingroombookingsystem.service.UsersService;
 
 import com.example.meetingroombookingsystem.utils.Const;
@@ -29,9 +25,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements UsersService {
@@ -41,6 +40,12 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Resource
     private RolesMapper rolesMapper;
+
+    @Resource
+    private PermissionsMapper permissionsMapper;
+
+    @Resource
+    private RolePermissionsMapper rolePermissionsMapper;
 
     @Resource
     AmqpTemplate rabbitTemplate;
@@ -64,12 +69,43 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         if (users == null) {
             throw new UsernameNotFoundException("用户不存在");
         }
+        String roleName = findRoleByUserId(users.getUserId());
+        List<String> permissions = findPermissionsByRoleName(roleName);
         return User
                 .withUsername(username)
                 .password(users.getPassword())
-                .roles(findRoleByUserId(users.getUserId()))
-
+                .authorities(permissions.toArray(new String[0]))
                 .build();
+    }
+
+    private List<String> findPermissionsByRoleName(String roleName) {
+        // 通过角色名称查找角色ID
+        LambdaQueryWrapper<Roles> roleWrapper = new LambdaQueryWrapper<>();
+        roleWrapper.eq(Roles::getRoleName, roleName);
+        Roles role = rolesMapper.selectOne(roleWrapper);
+        if (role == null) {
+            return Collections.emptyList();
+        }
+        Integer roleId = role.getRoleId();
+        // 通过角色ID查找权限ID列表
+        LambdaQueryWrapper<RolePermissions> rolePermissionsWrapper = new LambdaQueryWrapper<>();
+        rolePermissionsWrapper.eq(RolePermissions::getRoleId, roleId);
+        List<RolePermissions> rolePermissions = rolePermissionsMapper.selectList(rolePermissionsWrapper);
+        List<Integer> permissionIds = rolePermissions.stream()
+                .map(RolePermissions::getPermissionId)
+                .collect(Collectors.toList());
+        if (permissionIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        // 通过权限ID列表查找具体的权限名
+        LambdaQueryWrapper<Permissions> permissionsWrapper = new LambdaQueryWrapper<>();
+        permissionsWrapper.in(Permissions::getPermissionId, permissionIds);
+        List<Permissions> permissions = permissionsMapper.selectList(permissionsWrapper);
+        List<String> permissionNames = permissions.stream()
+                .map(Permissions::getPermissionName)
+                .collect(Collectors.toList());
+        // System.out.println("角色 " + roleName + " 的权限列表: " + permissionNames);
+        return permissionNames;
     }
 
     public Users findUsersByNameOrEmail(String text) {
@@ -124,11 +160,15 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         String email = info.getEmail();
         String code = this.getEmailVerifyCode(email);
         String role = info.getRole();
-        if (code == null) return "请先获取验证码";
-        if (!code.equals(info.getCode())) return "验证码错误，请重新输入";
-        if (this.existsAccountByEmail(email)) return "该邮件地址已被注册";
+        if (code == null)
+            return "请先获取验证码";
+        if (!code.equals(info.getCode()))
+            return "验证码错误，请重新输入";
+        if (this.existsAccountByEmail(email))
+            return "该邮件地址已被注册";
         String username = info.getUsername();
-        if (this.existsAccountByUsername(username)) return "该用户名已被他人使用，请重新更换";
+        if (this.existsAccountByUsername(username))
+            return "该用户名已被他人使用，请重新更换";
         String password = passwordEncoder.encode(info.getPassword());
         Users account = new Users(null, info.getUsername(),
                 password, email, new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()));
@@ -159,7 +199,8 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     @Override
     public String resetEmailAccountPassword(EmailResetVO info) {
         String verify = resetConfirm(new ConfirmResetVO(info.getEmail(), info.getCode()));
-        if (verify != null) return verify;
+        if (verify != null)
+            return verify;
         String email = info.getEmail();
         String password = passwordEncoder.encode(info.getPassword());
         boolean update = this.update().eq("email", email).set("password", password).update();
@@ -179,8 +220,10 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     public String resetConfirm(ConfirmResetVO info) {
         String email = info.getEmail();
         String code = this.getEmailVerifyCode(email);
-        if (code == null) return "请先获取验证码";
-        if (!code.equals(info.getCode())) return "验证码错误，请重新输入";
+        if (code == null)
+            return "请先获取验证码";
+        if (!code.equals(info.getCode()))
+            return "验证码错误，请重新输入";
         return null;
     }
 

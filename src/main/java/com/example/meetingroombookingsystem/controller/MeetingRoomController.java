@@ -8,6 +8,8 @@ import com.example.meetingroombookingsystem.entity.vo.response.meetingRoom.Meeti
 import com.example.meetingroombookingsystem.service.MeetingRoomsService;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,13 +21,14 @@ public class MeetingRoomController {
     @Resource
     MeetingRoomsService meetingRoomService;
 
-
+    @PreAuthorize("hasAuthority('Create Meeting Room')") 
     @PostMapping("/create")
     public RestBean<Void> createMeetingRoom(@RequestBody @Valid MeetingRoomCreateVo meetingRoomCreateVo) {
         return this.messageHandle(() ->
                 meetingRoomService.createMeetingRoom(meetingRoomCreateVo));
     }
 
+    @PreAuthorize("hasAuthority('Delete Meeting Room')")
     @PostMapping("/delete")
     public RestBean<Void> deleteMeetingRoom(String meetingRoomName) {
         return this.messageHandle(() ->
@@ -37,6 +40,7 @@ public class MeetingRoomController {
         return RestBean.success(meetingRoomService.listAllMeetingRooms());
     }
 
+    @PreAuthorize("hasAuthority('Edit Meeting Room')")
     @PutMapping("/update")
     public RestBean<Void> updateMeetingRoom(@RequestBody @Valid MeetingRoomUpdateVo meetingRoomUpdateVo) {
         return this.messageHandle(() ->
