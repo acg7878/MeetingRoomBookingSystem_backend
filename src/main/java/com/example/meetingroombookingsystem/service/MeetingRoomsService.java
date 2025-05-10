@@ -13,4 +13,10 @@ public interface MeetingRoomsService extends IService<MeetingRooms> {
     String deleteMeetingRoom(String meetingRoomName);
     List<MeetingRoomResponseVo> listAllMeetingRooms();
     String updateMeetingRoom(MeetingRoomUpdateVo meetingRoomUpdateVo);
+    String updateMeetingRoomStatus(String meetingRoomName, String status);
+    String bookMeetingRoom(String meetingRoomName, String bookingTime);
+    String cancelMeetingRoomBook(String meetingRoomName);
+    String updateMeetingRoomPrice(String meetingRoomName, Double pricePerHour);
+
+    List<String> getMeetingRoomEquipment(String meetingRoomName);
 }

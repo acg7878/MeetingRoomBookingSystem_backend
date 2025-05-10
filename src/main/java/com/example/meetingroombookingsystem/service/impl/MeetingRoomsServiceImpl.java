@@ -1,21 +1,33 @@
 package com.example.meetingroombookingsystem.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.meetingroombookingsystem.entity.dto.meetingRoom.Equipments;
+import com.example.meetingroombookingsystem.entity.dto.meetingRoom.MeetingRoomEquipments;
 import com.example.meetingroombookingsystem.entity.dto.meetingRoom.MeetingRooms;
 import com.example.meetingroombookingsystem.entity.vo.request.meetingRoom.MeetingRoomCreateVo;
 import com.example.meetingroombookingsystem.entity.vo.request.meetingRoom.MeetingRoomUpdateVo;
 import com.example.meetingroombookingsystem.entity.vo.response.meetingRoom.MeetingRoomResponseVo;
+import com.example.meetingroombookingsystem.mapper.meetingRoom.EquipmentsMapper;
+import com.example.meetingroombookingsystem.mapper.meetingRoom.MeetingRoomEquipmentMapper;
 import com.example.meetingroombookingsystem.mapper.meetingRoom.MeetingRoomsMapper;
 import com.example.meetingroombookingsystem.service.MeetingRoomsService;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, MeetingRooms> implements MeetingRoomsService {
+    @Resource
+    private EquipmentsMapper equipmentsMapper;
+    @Resource
+    private MeetingRoomEquipmentMapper meetingRoomEquipmentMapper;
 
     public String createMeetingRoom(MeetingRoomCreateVo meetingRoomCreateVo) {
         String meetingRoomName = meetingRoomCreateVo.getRoomName();
@@ -35,12 +47,14 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
 
     public String deleteMeetingRoom(String meetingRoomName) {
         // 检查会议室是否存在
-        if (!existsMeetingRoomByRoomName(meetingRoomName)) {
+        QueryWrapper<MeetingRooms> queryWrapper = getMeetingRoomQueryWrapper(meetingRoomName);
+        MeetingRooms existingRoom = this.getOne(queryWrapper);
+        if (existingRoom == null) {
             return "会议室不存在";
         }
         // 删除会议室
-        boolean isDeleted = this.remove(getMeetingRoomQueryWrapper(meetingRoomName));
-        return isDeleted ? "会议室删除成功" : "会议室删除失败";
+        this.remove(queryWrapper);
+        return null;
     }
 
     @Override
@@ -72,6 +86,89 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         existingRoom.setStatus(meetingRoomUpdateVo.getStatus());
         boolean updated = this.updateById(existingRoom);
         return updated ? "会议室更新成功" : "会议室更新失败";
+    }
+
+    @Override
+    public String updateMeetingRoomStatus(String meetingRoomName, String status) {
+        // 检查会议室是否存在
+        QueryWrapper<MeetingRooms> queryWrapper = getMeetingRoomQueryWrapper(meetingRoomName);
+        MeetingRooms existingRoom = this.getOne(queryWrapper);
+        if (existingRoom == null) {
+            return "会议室不存在";
+        }
+        // 更新会议室状态
+        existingRoom.setStatus(status);
+        boolean updated = this.updateById(existingRoom);
+        return updated ? "会议室状态更新成功" : "会议室状态更新失败";
+    }
+
+    @Override
+    public String bookMeetingRoom(String meetingRoomName, String bookingTime) {
+        // 检查会议室是否存在
+        QueryWrapper<MeetingRooms> queryWrapper = getMeetingRoomQueryWrapper(meetingRoomName);
+        MeetingRooms existingRoom = this.getOne(queryWrapper);
+        if (existingRoom == null) {
+            return "会议室不存在";
+        }
+        // 检查会议室状态是否可预订
+        if (!"available".equals(existingRoom.getStatus())) {
+            return "会议室当前不可预订";
+        }
+        // 更新会议室状态为已预订
+        existingRoom.setStatus("booked");
+        boolean updated = this.updateById(existingRoom);
+        return updated ? "会议室预订成功" : "会议室预订失败";
+    }
+
+    @Override
+    public String cancelMeetingRoomBook(String meetingRoomName) {
+        // 检查会议室是否存在
+        QueryWrapper<MeetingRooms> queryWrapper = getMeetingRoomQueryWrapper(meetingRoomName);
+        MeetingRooms existingRoom = this.getOne(queryWrapper);
+        if (existingRoom == null) {
+            return "会议室不存在";
+        }
+        // 检查会议室状态是否为已预订
+        if (!"booked".equals(existingRoom.getStatus())) {
+            return "会议室当前未被预订，无法取消";
+        }
+        // 更新会议室状态为可用
+        existingRoom.setStatus("available");
+        boolean updated = this.updateById(existingRoom);
+        return updated ? "会议室预订取消成功" : "会议室预订取消失败";
+    }
+
+
+    @Override
+    public String updateMeetingRoomPrice(String meetingRoomName, Double pricePerHour) {
+        // 检查会议室是否存在
+        QueryWrapper<MeetingRooms> queryWrapper = getMeetingRoomQueryWrapper(meetingRoomName);
+        MeetingRooms existingRoom = this.getOne(queryWrapper);
+        if (existingRoom == null) {
+            return "会议室不存在";
+        }
+        // 更新会议室价格
+        existingRoom.setPricePerHour(pricePerHour);
+        boolean updated = this.updateById(existingRoom);
+        return updated ? "会议室价格更新成功" : "会议室价格更新失败";
+    }
+
+    @Override
+    public List<String> getMeetingRoomEquipment(String meetingRoomName) {
+        // 查 roomId
+        MeetingRooms room = this.baseMapper.selectOne(
+                new LambdaQueryWrapper<MeetingRooms>().eq(MeetingRooms::getRoomName, meetingRoomName)
+        );
+        if (room == null) return Collections.emptyList();
+        // 查 equipmentIds
+        List<Integer> equipmentIds = meetingRoomEquipmentMapper.selectList(
+                new LambdaQueryWrapper<MeetingRoomEquipments>().eq(MeetingRoomEquipments::getRoomId, room.getRoomId())
+        ).stream().map(MeetingRoomEquipments::getEquipmentId).toList();
+        if (equipmentIds.isEmpty()) return Collections.emptyList();
+        // 查 equipmentName
+        return equipmentsMapper.selectList(
+                new LambdaQueryWrapper<Equipments>().in(Equipments::getEquipmentId, equipmentIds)
+        ).stream().map(Equipments::getEquipmentName).collect(Collectors.toList());
     }
 
 

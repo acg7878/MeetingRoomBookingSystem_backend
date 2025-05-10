@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 @RestController
@@ -30,11 +31,13 @@ public class MeetingRoomController {
 
     @PreAuthorize("hasAuthority('Delete Meeting Room')")
     @PostMapping("/delete")
-    public RestBean<Void> deleteMeetingRoom(String meetingRoomName) {
+    public RestBean<Void> deleteMeetingRoom(@RequestBody Map<String, String> requestBody) {
+        String meetingRoomName = requestBody.get("meetingRoomName");
         return this.messageHandle(() ->
                 meetingRoomService.deleteMeetingRoom(meetingRoomName));
     }
 
+    @PreAuthorize("hasAuthority('View Meeting Room List')")
     @GetMapping("/list")
     public RestBean<List<MeetingRoomResponseVo>> listAllMeetingRooms() {
         return RestBean.success(meetingRoomService.listAllMeetingRooms());
@@ -46,6 +49,42 @@ public class MeetingRoomController {
         return this.messageHandle(() ->
                 meetingRoomService.updateMeetingRoom(meetingRoomUpdateVo));
     }
+
+    @PreAuthorize("hasAuthority('Update Meeting Room Status')")
+    @PutMapping("/update-status")
+    public RestBean<Void> updateMeetingRoomStatus(@RequestParam String meetingRoomName, @RequestParam String status) {
+        return this.messageHandle(() ->
+                meetingRoomService.updateMeetingRoomStatus(meetingRoomName, status));
+    }
+
+    @PreAuthorize("hasAuthority('Set and Modify Rental Price')")
+    @PutMapping("/update-price")
+    public RestBean<Void> updateMeetingRoomPrice(@RequestParam String meetingRoomName, @RequestParam Double pricePerHour) {
+        return this.messageHandle(() ->
+                meetingRoomService.updateMeetingRoomPrice(meetingRoomName, pricePerHour));
+    }
+
+
+    @PreAuthorize("hasAuthority('Book Meeting Room')")
+    @PostMapping("/book")
+    public RestBean<Void> bookMeetingRoom(@RequestParam String meetingRoomName, @RequestParam String bookingTime) {
+        return this.messageHandle(() ->
+                meetingRoomService.bookMeetingRoom(meetingRoomName, bookingTime));
+    }
+
+    @PreAuthorize("hasAuthority('Apply for Cancellation')")
+    @PostMapping("/cancel")
+    public RestBean<Void> cancelMeetingRoomBook(@RequestParam String meetingRoomName) {
+        return this.messageHandle(() ->
+                meetingRoomService.cancelMeetingRoomBook(meetingRoomName));
+    }
+
+    @PreAuthorize("hasAnyAuthority('View Meeting Room Equipment')")
+    @GetMapping("/equipment")
+    public RestBean<List<String>> getMeetingRoomEquipment(@RequestParam String meetingRoomName) {
+        return RestBean.success(meetingRoomService.getMeetingRoomEquipment(meetingRoomName));
+    }
+
 
 
     /**
