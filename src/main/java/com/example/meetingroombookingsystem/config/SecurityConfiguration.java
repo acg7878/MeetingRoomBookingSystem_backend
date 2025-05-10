@@ -89,6 +89,7 @@ public class SecurityConfiguration {
                 return;
             }
             String roleName = usersService.findRoleByUserId(account.getUserId());
+            String status = account.getStatus();
             // 生成 JWT
             String jwt = jwtUtils.createJWT(user, account.getUserId(), account.getUsername());
             if (jwt == null) {
@@ -100,6 +101,7 @@ public class SecurityConfiguration {
                 vo.setExpireTime(jwtUtils.expireTime());
                 vo.setUsername(account.getUsername());
                 vo.setRole(roleName);
+                vo.setStatus(status);
                 writer.write(RestBean.success(vo).asJsonString());
             }
         }
