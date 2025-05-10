@@ -7,6 +7,7 @@ import com.example.meetingroombookingsystem.entity.dto.auth.*;
 import com.example.meetingroombookingsystem.entity.vo.request.auth.ConfirmResetVO;
 import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailRegisterVO;
 import com.example.meetingroombookingsystem.entity.vo.request.auth.EmailResetVO;
+import com.example.meetingroombookingsystem.entity.vo.response.user.UsersResponseVo;
 import com.example.meetingroombookingsystem.mapper.auth.*;
 import com.example.meetingroombookingsystem.service.UsersService;
 
@@ -171,7 +172,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
             return "该用户名已被他人使用，请重新更换";
         String password = passwordEncoder.encode(info.getPassword());
         Users account = new Users(null, info.getUsername(),
-                password, email, new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()));
+                password, email, new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "pending");
         if (!this.save(account)) {
             return "内部错误，注册失败";
         } else {
@@ -186,7 +187,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
                 return "内部错误，角色分配失败";
             }
             this.deleteEmailVerifyCode(email);
-            return null;
+            return "注册成功，请等待管理员审核";
         }
     }
 
@@ -225,6 +226,38 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         if (!code.equals(info.getCode()))
             return "验证码错误，请重新输入";
         return null;
+    }
+
+    @Override
+    public List<UsersResponseVo> listAllUsers() {
+        return this.list().stream().map(user -> {
+            UsersResponseVo responseVo = new UsersResponseVo();
+            responseVo.setUsername(user.getUsername());
+            responseVo.setEmail(user.getEmail());
+            responseVo.setCreatedAt(user.getCreatedAt());
+            responseVo.setUpdatedAt(user.getUpdatedAt());
+            responseVo.setStatus(user.getStatus());
+            return responseVo;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public String updateUserStatus(String userName, String status) {
+        // 校验 status 是否合法
+        if (status == null || !List.of("frozen", "pending", "active").contains(status)) {
+            return "状态值非法，请传入正确的状态值（frozen, pending, active）";
+        }
+        // 查询用户是否存在
+        Users user = this.findUsersByNameOrEmail(userName);
+        if (user == null) {
+            return "用户不存在";
+        }
+        // 更新用户状态
+        boolean update = this.update()
+                .eq("username", userName)
+                .set("status", status)
+                .update();
+        return update ? null : "更新失败，请联系管理员";
     }
 
     /**

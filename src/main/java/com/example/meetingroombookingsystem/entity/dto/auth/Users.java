@@ -31,4 +31,8 @@ public class Users {
 
     @TableField("updated_at")
     Timestamp updatedAt;
+
+    @TableField("status")
+    String status;
+
 }
