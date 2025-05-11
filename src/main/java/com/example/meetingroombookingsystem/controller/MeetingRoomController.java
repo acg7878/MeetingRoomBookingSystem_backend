@@ -3,7 +3,10 @@ package com.example.meetingroombookingsystem.controller;
 
 import com.example.meetingroombookingsystem.entity.vo.RestBean;
 import com.example.meetingroombookingsystem.entity.vo.request.meetingRoom.MeetingRoomCreateVo;
+import com.example.meetingroombookingsystem.entity.vo.request.meetingRoom.MeetingRoomFilterVo;
 import com.example.meetingroombookingsystem.entity.vo.request.meetingRoom.MeetingRoomUpdateVo;
+import com.example.meetingroombookingsystem.entity.vo.request.order.OrderMeetingRoomBookVo;
+import com.example.meetingroombookingsystem.entity.vo.response.meetingRoom.MeetingRoomFliterResponseVo;
 import com.example.meetingroombookingsystem.entity.vo.response.meetingRoom.MeetingRoomResponseVo;
 import com.example.meetingroombookingsystem.service.MeetingRoomsService;
 import jakarta.annotation.Resource;
@@ -12,6 +15,7 @@ import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -64,20 +68,25 @@ public class MeetingRoomController {
                 meetingRoomService.updateMeetingRoomPrice(meetingRoomName, pricePerHour));
     }
 
+    @PreAuthorize("hasAuthority('Fliter Meeting Room')")
+    @PostMapping("/fliter")
+    public RestBean<List<MeetingRoomFliterResponseVo>> filterMeetingRooms(@RequestBody MeetingRoomFilterVo filterRequest) {
+        return RestBean.success(meetingRoomService.filterMeetingRooms(
+                filterRequest.getStartTime(),
+                filterRequest.getEndTime(),
+                filterRequest.getAttendees(),
+                filterRequest.getEquipment()
+        ));
+
+    }
 
     @PreAuthorize("hasAuthority('Book Meeting Room')")
     @PostMapping("/book")
-    public RestBean<Void> bookMeetingRoom(@RequestParam String meetingRoomName, @RequestParam String bookingTime) {
+    public RestBean<Void> bookMeetingRoom(@RequestBody OrderMeetingRoomBookVo vo) {
         return this.messageHandle(() ->
-                meetingRoomService.bookMeetingRoom(meetingRoomName, bookingTime));
+                meetingRoomService.bookMeetingRoom(vo.getMeetingRoomName(), vo.getCustomerName(),vo.getStartTime(),vo.getEndTime()));
     }
 
-    @PreAuthorize("hasAuthority('Apply for Cancellation')")
-    @PostMapping("/cancel")
-    public RestBean<Void> cancelMeetingRoomBook(@RequestParam String meetingRoomName) {
-        return this.messageHandle(() ->
-                meetingRoomService.cancelMeetingRoomBook(meetingRoomName));
-    }
 
     @PreAuthorize("hasAnyAuthority('View Meeting Room Equipment')")
     @GetMapping("/equipment")
