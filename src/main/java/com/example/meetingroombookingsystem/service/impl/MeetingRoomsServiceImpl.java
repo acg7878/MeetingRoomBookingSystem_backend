@@ -4,22 +4,31 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.meetingroombookingsystem.entity.dto.Orders;
+import com.example.meetingroombookingsystem.entity.dto.auth.Users;
 import com.example.meetingroombookingsystem.entity.dto.meetingRoom.Equipments;
 import com.example.meetingroombookingsystem.entity.dto.meetingRoom.MeetingRoomEquipments;
 import com.example.meetingroombookingsystem.entity.dto.meetingRoom.MeetingRooms;
 import com.example.meetingroombookingsystem.entity.vo.request.meetingRoom.MeetingRoomCreateVo;
 import com.example.meetingroombookingsystem.entity.vo.request.meetingRoom.MeetingRoomUpdateVo;
+import com.example.meetingroombookingsystem.entity.vo.response.meetingRoom.MeetingRoomFliterResponseVo;
 import com.example.meetingroombookingsystem.entity.vo.response.meetingRoom.MeetingRoomResponseVo;
-import com.example.meetingroombookingsystem.mapper.meetingRoom.EquipmentsMapper;
+import com.example.meetingroombookingsystem.mapper.EquipmentsMapper;
+import com.example.meetingroombookingsystem.mapper.OrderMapper;
+import com.example.meetingroombookingsystem.mapper.auth.UsersMapper;
 import com.example.meetingroombookingsystem.mapper.meetingRoom.MeetingRoomEquipmentMapper;
 import com.example.meetingroombookingsystem.mapper.meetingRoom.MeetingRoomsMapper;
 import com.example.meetingroombookingsystem.service.MeetingRoomsService;
+import com.example.meetingroombookingsystem.utils.TimeUtils;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,7 +37,10 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
     private EquipmentsMapper equipmentsMapper;
     @Resource
     private MeetingRoomEquipmentMapper meetingRoomEquipmentMapper;
-
+    @Resource
+    private OrderMapper orderMapper;
+    @Resource
+    private UsersMapper usersMapper;
     public String createMeetingRoom(MeetingRoomCreateVo meetingRoomCreateVo) {
         String meetingRoomName = meetingRoomCreateVo.getRoomName();
         String roomType = meetingRoomCreateVo.getRoomType();
@@ -38,7 +50,7 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         if (existsMeetingRoomByRoomName(meetingRoomName)) {
             return "会议室已存在";
         }
-        MeetingRooms meetingRoom = new MeetingRooms(null, meetingRoomName, roomType, seatCount, pricePerHour, roomStatus, new Timestamp(System.currentTimeMillis()));
+        MeetingRooms meetingRoom = new MeetingRooms(null, meetingRoomName, roomType, seatCount, pricePerHour, roomStatus, TimeUtils.timestampToLong(new Timestamp(System.currentTimeMillis())));
         if (!this.save(meetingRoom)) {
             return "会议室创建失败";
         } else
@@ -103,40 +115,45 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
     }
 
     @Override
-    public String bookMeetingRoom(String meetingRoomName, String bookingTime) {
-        // 检查会议室是否存在
-        QueryWrapper<MeetingRooms> queryWrapper = getMeetingRoomQueryWrapper(meetingRoomName);
-        MeetingRooms existingRoom = this.getOne(queryWrapper);
-        if (existingRoom == null) {
+    public String bookMeetingRoom(String meetingRoomName, String customerName, Long startTime, Long endTime) {
+        MeetingRooms meetingRoom = this.baseMapper.selectOne(
+                new LambdaQueryWrapper<MeetingRooms>().eq(MeetingRooms::getRoomName, meetingRoomName)
+        );
+        if (meetingRoom == null) {
             return "会议室不存在";
         }
-        // 检查会议室状态是否可预订
-        if (!"available".equals(existingRoom.getStatus())) {
-            return "会议室当前不可预订";
+        // 2. 检查会议室状态
+        if (!"available".equals(meetingRoom.getStatus())) {
+            return "会议室不可用";
         }
-        // 更新会议室状态为已预订
-        existingRoom.setStatus("booked");
-        boolean updated = this.updateById(existingRoom);
-        return updated ? "会议室预订成功" : "会议室预订失败";
+        // 3. 查询用户 ID
+        Users user = usersMapper.selectOne(
+                new LambdaQueryWrapper<Users>().eq(Users::getUsername, customerName)
+        );
+        if (user == null) {
+            return "用户不存在";
+        }
+        Integer customerId = user.getUserId();
+        // 4. 创建订单
+        Double pricePerHour = meetingRoom.getPricePerHour();
+        long durationInHours = (endTime - startTime) / (1000 * 60 * 60); // 计算时长（小时）
+        Double totalPrice = pricePerHour * durationInHours;
+        Orders order = new Orders();
+        order.setRoomId(meetingRoom.getRoomId());
+        order.setCustomerId(customerId);
+        order.setStartTime(startTime);
+        order.setEndTime(endTime);
+        order.setTotalPrice(totalPrice); // 计算总价
+        order.setPaymentStatus("unpaid");
+        boolean saved = orderMapper.insert(order) > 0;
+        if (!saved) {
+            return "订单创建失败";
+        }
+        meetingRoom.setStatus("locked");
+        this.updateById(meetingRoom);
+        return null;
     }
 
-    @Override
-    public String cancelMeetingRoomBook(String meetingRoomName) {
-        // 检查会议室是否存在
-        QueryWrapper<MeetingRooms> queryWrapper = getMeetingRoomQueryWrapper(meetingRoomName);
-        MeetingRooms existingRoom = this.getOne(queryWrapper);
-        if (existingRoom == null) {
-            return "会议室不存在";
-        }
-        // 检查会议室状态是否为已预订
-        if (!"booked".equals(existingRoom.getStatus())) {
-            return "会议室当前未被预订，无法取消";
-        }
-        // 更新会议室状态为可用
-        existingRoom.setStatus("available");
-        boolean updated = this.updateById(existingRoom);
-        return updated ? "会议室预订取消成功" : "会议室预订取消失败";
-    }
 
 
     @Override
@@ -169,6 +186,64 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         return equipmentsMapper.selectList(
                 new LambdaQueryWrapper<Equipments>().in(Equipments::getEquipmentId, equipmentIds)
         ).stream().map(Equipments::getEquipmentName).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MeetingRoomFliterResponseVo> filterMeetingRooms(Long startTime, Long endTime, Integer attendees, List<String> equipment) {
+        // 1. 查询已被预订的会议室 ID
+        List<Integer> bookedRoomIds = orderMapper.selectList(
+                new LambdaQueryWrapper<Orders>()
+                        .ne(Orders::getPaymentStatus, "cancelled") // 支付状态不是取消
+                        .and(wrapper -> wrapper
+                                .le(Orders::getStartTime, endTime)
+                                .ge(Orders::getEndTime, startTime)
+                        )
+        ).stream().map(Orders::getRoomId).toList();
+
+        // 2. 查询包含所有指定设备的会议室 ID
+        List<Integer> roomIdsWithAllEquipment = Collections.emptyList();
+        if (equipment != null && !equipment.isEmpty()) {
+            List<Integer> equipmentIds = equipmentsMapper.selectList(
+                    new LambdaQueryWrapper<Equipments>()
+                            .in(Equipments::getEquipmentName, equipment)
+            ).stream().map(Equipments::getEquipmentId).toList();
+
+            if (!equipmentIds.isEmpty()) {
+                roomIdsWithAllEquipment = meetingRoomEquipmentMapper.selectList(
+                                new LambdaQueryWrapper<MeetingRoomEquipments>()
+                                        .in(MeetingRoomEquipments::getEquipmentId, equipmentIds)
+                        ).stream()
+                        .collect(Collectors.groupingBy(MeetingRoomEquipments::getRoomId, Collectors.mapping(MeetingRoomEquipments::getEquipmentId, Collectors.toSet())))
+                        .entrySet().stream()
+                        .filter(entry -> entry.getValue().containsAll(equipmentIds)) // 过滤出包含所有设备的会议室
+                        .map(Map.Entry::getKey)
+                        .toList();
+            }
+        }
+
+        // 如果设备条件不为空但没有找到符合条件的会议室，直接返回空列表
+        if (equipment != null && !equipment.isEmpty() && roomIdsWithAllEquipment.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 3. 查询满足条件的会议室
+        List<MeetingRooms> availableRooms = this.list(
+                new LambdaQueryWrapper<MeetingRooms>()
+                        .ge(MeetingRooms::getSeatCount, attendees) // 满足人数要求
+                        .eq(MeetingRooms::getStatus, "available") // 状态为可用
+                        .notIn(!bookedRoomIds.isEmpty(), MeetingRooms::getRoomId, bookedRoomIds) // 排除已被预订的会议室
+                        .in(!roomIdsWithAllEquipment.isEmpty(), MeetingRooms::getRoomId, roomIdsWithAllEquipment) // 包含所有指定设备
+        );
+
+        // 4. 转换为响应对象
+        return availableRooms.stream().map(room -> {
+            MeetingRoomFliterResponseVo vo = new MeetingRoomFliterResponseVo();
+            vo.setRoomName(room.getRoomName());
+            vo.setRoomType(room.getRoomType());
+            vo.setPricePerHour(room.getPricePerHour());
+            vo.setSeatCount(room.getSeatCount());
+            return vo;
+        }).toList();
     }
 
 

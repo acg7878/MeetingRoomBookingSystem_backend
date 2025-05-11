@@ -14,6 +14,7 @@ import com.example.meetingroombookingsystem.service.UsersService;
 import com.example.meetingroombookingsystem.utils.Const;
 import com.example.meetingroombookingsystem.utils.FlowUtils;
 
+import com.example.meetingroombookingsystem.utils.TimeUtils;
 import jakarta.annotation.Resource;
 
 import org.springframework.amqp.core.AmqpTemplate;
@@ -172,7 +173,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
             return "该用户名已被他人使用，请重新更换";
         String password = passwordEncoder.encode(info.getPassword());
         Users account = new Users(null, info.getUsername(),
-                password, email, new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "pending");
+                password, email, TimeUtils.timestampToLong(new Timestamp(System.currentTimeMillis())), TimeUtils.timestampToLong(new Timestamp(System.currentTimeMillis())), "pending");
         if (!this.save(account)) {
             return "内部错误，注册失败";
         } else {
