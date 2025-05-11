@@ -27,10 +27,10 @@ public class Users {
     String email;
 
     @TableField("created_at")
-    Timestamp createdAt;
+    Long createdAt;
 
     @TableField("updated_at")
-    Timestamp updatedAt;
+    Long updatedAt;
 
     @TableField("status")
     String status;

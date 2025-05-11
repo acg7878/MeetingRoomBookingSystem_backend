@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.sql.Date;
 import java.sql.Timestamp;
 
 @Data
@@ -33,5 +34,5 @@ public class MeetingRooms {
     String status;
 
     @TableField("created_at")
-    Timestamp createdAt;
+    Long createdAt;
 }

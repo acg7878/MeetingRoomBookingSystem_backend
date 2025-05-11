@@ -8,7 +8,7 @@ import java.sql.Timestamp;
 public class UsersResponseVo {
     private String username;
     private String email;
-    private Timestamp createdAt;
-    private Timestamp updatedAt;
+    private Long createdAt;
+    private Long updatedAt;
     private String status;
 }
