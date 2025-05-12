@@ -23,8 +23,6 @@ import com.example.meetingroombookingsystem.utils.TimeUtils;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
@@ -54,7 +52,7 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         if (!this.save(meetingRoom)) {
             return "会议室创建失败";
         } else
-            return "会议室创建成功";
+            return null;
     }
 
     public String deleteMeetingRoom(String meetingRoomName) {
@@ -111,7 +109,7 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         // 更新会议室状态
         existingRoom.setStatus(status);
         boolean updated = this.updateById(existingRoom);
-        return updated ? "会议室状态更新成功" : "会议室状态更新失败";
+        return updated ? null: "会议室状态更新失败";
     }
 
     @Override
@@ -143,6 +141,8 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         order.setCustomerId(customerId);
         order.setStartTime(startTime);
         order.setEndTime(endTime);
+        order.setCreatedAt(TimeUtils.timestampToLong(new Timestamp(System.currentTimeMillis())));
+        order.setUpdatedAt(TimeUtils.timestampToLong(new Timestamp(System.currentTimeMillis())));
         order.setTotalPrice(totalPrice); // 计算总价
         order.setPaymentStatus("unpaid");
         boolean saved = orderMapper.insert(order) > 0;

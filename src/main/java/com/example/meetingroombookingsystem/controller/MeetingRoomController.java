@@ -15,7 +15,6 @@ import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -56,7 +55,9 @@ public class MeetingRoomController {
 
     @PreAuthorize("hasAuthority('Update Meeting Room Status')")
     @PutMapping("/update-status")
-    public RestBean<Void> updateMeetingRoomStatus(@RequestParam String meetingRoomName, @RequestParam String status) {
+    public RestBean<Void> updateMeetingRoomStatus(@RequestBody Map<String, String> requestBody) {
+        String meetingRoomName = requestBody.get("meetingRoomName");
+        String status = requestBody.get("status");
         return this.messageHandle(() ->
                 meetingRoomService.updateMeetingRoomStatus(meetingRoomName, status));
     }
