@@ -47,7 +47,7 @@ public class MeetingRoomController {
     }
 
     @PreAuthorize("hasAuthority('Edit Meeting Room')")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public RestBean<Void> updateMeetingRoom(@RequestBody @Valid MeetingRoomUpdateVo meetingRoomUpdateVo) {
         return this.messageHandle(() ->
                 meetingRoomService.updateMeetingRoom(meetingRoomUpdateVo));

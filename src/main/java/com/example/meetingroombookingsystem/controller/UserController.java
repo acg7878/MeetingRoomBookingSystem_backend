@@ -33,6 +33,12 @@ public class UserController {
                 usersService.updateUserStatus(userName, status));
     }
 
+    @PreAuthorize("hasAuthority('Delete User')")
+    @GetMapping("/delete")
+    public RestBean<Void> deleteUser (@RequestParam String userName) {
+        return this.messageHandle(() -> usersService.deleteUser(userName));
+    }
+
     private <T> RestBean<T> messageHandle(Supplier<String> action){
         String message = action.get();
         if(message == null)
