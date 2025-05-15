@@ -8,4 +8,5 @@ public class MeetingRoomFliterResponseVo {
     private String roomType;
     private Double pricePerHour;
     private Integer seatCount;
+    private String[] equipments;
 }

@@ -9,5 +9,5 @@ public class MeetingRoomResponseVo {
     private Double pricePerHour;
     private Integer seatCount;
     private String status;
-
+    private String[] equipments;
 }

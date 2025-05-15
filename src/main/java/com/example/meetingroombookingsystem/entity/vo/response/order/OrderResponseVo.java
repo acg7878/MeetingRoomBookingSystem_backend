@@ -1,10 +1,6 @@
-package com.example.meetingroombookingsystem.entity.vo.response;
+package com.example.meetingroombookingsystem.entity.vo.response.order;
 
 import lombok.Data;
-
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Timestamp;
 
 @Data
 public class OrderResponseVo {

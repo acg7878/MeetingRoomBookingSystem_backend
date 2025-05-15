@@ -29,4 +29,6 @@ public class MeetingRoomUpdateVo {
     @NotNull(message = "会议室状态不能为空")
     @Pattern(regexp = "^(available|locked|booked|in_use|under_maintenance)$", message = "会议室状态不合法")
     private String status;
+
+    private String[] equipments;
 }
