@@ -261,6 +261,18 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         return update ? null : "更新失败，请联系管理员";
     }
 
+    @Override
+    public String deleteUser(String userName) {
+        // 检查用户是否存在
+        Users user = this.findUsersByNameOrEmail(userName);
+        if (user == null) {
+            return "用户不存在";
+        }
+        // 删除用户
+        boolean removed = this.removeById(user.getUserId());
+        return removed ? null : "删除失败！！";
+    }
+
     /**
      * 移除Redis中存储的邮件验证码
      *

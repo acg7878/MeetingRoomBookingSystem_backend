@@ -20,4 +20,6 @@ public interface UsersService extends IService<Users>, UserDetailsService {
     String resetConfirm(ConfirmResetVO info);
     List<UsersResponseVo> listAllUsers();
     String updateUserStatus(String userName, String status);
+
+    String deleteUser(String userName);
 }

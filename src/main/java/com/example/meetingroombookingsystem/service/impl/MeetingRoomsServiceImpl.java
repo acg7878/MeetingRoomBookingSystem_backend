@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.example.meetingroombookingsystem.entity.dto.Orders;
+import com.example.meetingroombookingsystem.entity.dto.order.Orders;
 import com.example.meetingroombookingsystem.entity.dto.auth.Users;
 import com.example.meetingroombookingsystem.entity.dto.meetingRoom.Equipments;
 import com.example.meetingroombookingsystem.entity.dto.meetingRoom.MeetingRoomEquipments;
@@ -21,9 +21,11 @@ import com.example.meetingroombookingsystem.mapper.meetingRoom.MeetingRoomsMappe
 import com.example.meetingroombookingsystem.service.MeetingRoomsService;
 import com.example.meetingroombookingsystem.utils.TimeUtils;
 import jakarta.annotation.Resource;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +41,9 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
     private OrderMapper orderMapper;
     @Resource
     private UsersMapper usersMapper;
+    @Resource
+    AmqpTemplate rabbitTemplate;
+
     public String createMeetingRoom(MeetingRoomCreateVo meetingRoomCreateVo) {
         String meetingRoomName = meetingRoomCreateVo.getRoomName();
         String roomType = meetingRoomCreateVo.getRoomType();
@@ -51,8 +56,25 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         MeetingRooms meetingRoom = new MeetingRooms(null, meetingRoomName, roomType, seatCount, pricePerHour, roomStatus, TimeUtils.timestampToLong(new Timestamp(System.currentTimeMillis())));
         if (!this.save(meetingRoom)) {
             return "会议室创建失败";
-        } else
-            return null;
+        }
+        Integer roomId = meetingRoom.getRoomId();
+        String[] equipmentList = meetingRoomCreateVo.getEquipments();
+        if (equipmentList != null && equipmentList.length > 0) {
+            // 查询设备ID并插入到MeetingRoomEquipments表
+            List<Equipments> equipments = equipmentsMapper.selectList(
+                    new LambdaQueryWrapper<Equipments>().in(Equipments::getEquipmentName, Arrays.asList(equipmentList))
+            );
+            if (equipments.isEmpty()) {
+                return "部分设备不存在";
+            }
+            List<MeetingRoomEquipments> meetingRoomEquipments = equipments.stream()
+                    .map(equipment -> new MeetingRoomEquipments(roomId, equipment.getEquipmentId()))
+                    .toList();
+            for (MeetingRoomEquipments equipment : meetingRoomEquipments) {
+                meetingRoomEquipmentMapper.insert(equipment);
+            }
+        }
+        return null;
     }
 
     public String deleteMeetingRoom(String meetingRoomName) {
@@ -76,6 +98,13 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
             vo.setPricePerHour(meetingRoom.getPricePerHour());
             vo.setSeatCount(meetingRoom.getSeatCount());
             vo.setStatus(meetingRoom.getStatus());
+            // 查询设备并设置
+            List<String> equipmentNames = meetingRoomEquipmentMapper.selectList(
+                            new LambdaQueryWrapper<MeetingRoomEquipments>()
+                                    .eq(MeetingRoomEquipments::getRoomId, meetingRoom.getRoomId())
+                    ).stream().map(equipment -> equipmentsMapper.selectById(equipment.getEquipmentId()).getEquipmentName())
+                    .toList();
+            vo.setEquipments(equipmentNames.toArray(new String[0]));
             return vo;
         }).toList();
     }
@@ -88,6 +117,7 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         if (existingRoom == null) {
             return "会议室不存在";
         }
+
         // 更新字段
         existingRoom.setRoomName(meetingRoomUpdateVo.getNewRoomName());
         existingRoom.setRoomType(meetingRoomUpdateVo.getRoomType());
@@ -95,7 +125,32 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         existingRoom.setPricePerHour(meetingRoomUpdateVo.getPricePerHour());
         existingRoom.setStatus(meetingRoomUpdateVo.getStatus());
         boolean updated = this.updateById(existingRoom);
-        return updated ? "会议室更新成功" : "会议室更新失败";
+        if (!updated) {
+            return "会议室更新失败";
+        }
+        // 处理设备更新
+        String[] equipmentList = meetingRoomUpdateVo.getEquipments();
+        Integer roomId = existingRoom.getRoomId();
+        // 删除旧的设备关联
+        meetingRoomEquipmentMapper.delete(
+                new LambdaQueryWrapper<MeetingRoomEquipments>().eq(MeetingRoomEquipments::getRoomId, roomId)
+        );
+        // 插入新的设备关联
+        if (equipmentList != null && equipmentList.length > 0) {
+            List<Equipments> equipments = equipmentsMapper.selectList(
+                    new LambdaQueryWrapper<Equipments>().in(Equipments::getEquipmentName, Arrays.asList(equipmentList))
+            );
+            if (equipments.isEmpty()) {
+                return "部分设备不存在";
+            }
+            List<MeetingRoomEquipments> meetingRoomEquipments = equipments.stream()
+                    .map(equipment -> new MeetingRoomEquipments(roomId, equipment.getEquipmentId()))
+                    .toList();
+            for (MeetingRoomEquipments equipment : meetingRoomEquipments) {
+                meetingRoomEquipmentMapper.insert(equipment);
+            }
+        }
+        return null;
     }
 
     @Override
@@ -109,7 +164,7 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         // 更新会议室状态
         existingRoom.setStatus(status);
         boolean updated = this.updateById(existingRoom);
-        return updated ? null: "会议室状态更新失败";
+        return updated ? null : "会议室状态更新失败";
     }
 
     @Override
@@ -151,9 +206,19 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
         }
         meetingRoom.setStatus("locked");
         this.updateById(meetingRoom);
+
+        // 6. 发送延迟消息（60秒未支付取消）
+        rabbitTemplate.convertAndSend(
+                "order.event.exchange",       // 你定义的延迟交换机
+                "order.delay.release",        // routing key
+                order.getOrderId(),           // 消息内容
+                message -> {
+                    message.getMessageProperties().setExpiration("1800000"); // 30分钟
+                    return message;
+                }
+        );
         return null;
     }
-
 
 
     @Override
@@ -242,6 +307,13 @@ public class MeetingRoomsServiceImpl extends ServiceImpl<MeetingRoomsMapper, Mee
             vo.setRoomType(room.getRoomType());
             vo.setPricePerHour(room.getPricePerHour());
             vo.setSeatCount(room.getSeatCount());
+            // 查询并设置设备
+            List<String> equipmentNames = meetingRoomEquipmentMapper.selectList(
+                            new LambdaQueryWrapper<MeetingRoomEquipments>()
+                                    .eq(MeetingRoomEquipments::getRoomId, room.getRoomId())
+                    ).stream().map(equipmentEntity -> equipmentsMapper.selectById(equipmentEntity.getEquipmentId()).getEquipmentName())
+                    .toList();
+            vo.setEquipments(equipmentNames.toArray(new String[0]));
             return vo;
         }).toList();
     }
